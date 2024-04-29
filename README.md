@@ -11,32 +11,29 @@
    - During the installation process, make sure to check the box that says "Add Python to PATH" or "Include Python in PATH" to ensure Python is added to your system's PATH environment variable.
 
 3. **Clone the MDSurvey Repository:**
-   - Open your terminal or command prompt on your computer.
+   - Open VScode look for the tab that says terminal, and press (New Terminal).
    - Run the following command to clone the MDSurvey repository to your local machine:
      ```
      git clone https://github.com/DexterW1/MDSurvey.git 
      ```
    - This will create a new directory called `MDSurvey` in your current location and clone the repository contents into it.
 
-4. **Install Dependencies:**
-   - Navigate to the `MDSurvey` directory that you cloned in the previous step.
+5. **Install Dependencies:**
+   - Navigate to the `MDSurvey` directory that you cloned in the previous step (`cd MDsurvey`).
    - Run the following command to install the project dependencies using `pip`:
      ```
      pip install -r requirements.txt
      ```
    - This command will install all the required Python packages specified in the `requirements.txt` file.
 
-5. **Insert Survey Codes:**
+6. **Insert Survey Codes:**
    - Open the `voiceReceipts.txt` file located in the `MDSurvey` directory using a text editor (such as VSCode).
    - Insert your survey codes into the file, with each code on a separate line.
    - Save the changes to the `voiceReceipts.txt` file.
 
-6. **Run the Main Script:**
+7. **Run the Main Script:**
    - In the terminal or command prompt, navigate to the `MDSurvey` directory.
    - Run the following command to execute the main Python script:
      ```
      python main.py
      ```
-   - The script will start running, prompting you to enter the survey codes and other necessary information.
-
-That's it! You've successfully installed and set up the MDSurvey script. Follow the on-screen instructions to complete the survey process. If you encounter any issues, feel free to reach out for assistance.
