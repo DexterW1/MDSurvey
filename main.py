@@ -88,7 +88,7 @@ def generate_unique_mcdonalds_sentence(available_sentences):
 def reset_available_numbers():
     # Reset the available numbers list to contain numbers from 0 to 100
     available_numbers.extend(range(101))
-def storeInfo():
+def storeInfo(store_id):
   input_element = driver.find_element(By.ID,"InputStoreID")
   input_element.click()
   input_element.send_keys(store_id)
@@ -273,6 +273,11 @@ def driveThruPull():
    radio_button = driver.find_element(By.ID,"R000026.2")
    driver.execute_script("arguments[0].click();", radio_button)
    NextButton()
+def correctStore():
+   time.sleep(pageLoadTime)
+   radio_button = driver.find_element(By.ID,"R000060.1")
+   driver.execute_script("arguments[0].click();", radio_button)
+   NextButton()
 def checkAndRunQuestions(surveyOption):
     survey_done = False
     remaining_questions = possibleQuestions.copy()  # Make a copy of the original dictionary
@@ -370,26 +375,51 @@ possibleQuestions = {
     "textBlock9475": rateSatisfaction,
     "textS000100":howOrder,
     "textR000026": driveThruPull,
-    "textBlock9500": demographics
+    "textBlock9500": demographics,
+    "textR000060": correctStore
 }
 
 #=========================================================================Code Begins==================================================
 # numOfSurveys = int(input("Enter the number of surveys you wish to input: "))
-survey_info =[]
-read_survey_info(survey_info)
-print("Survey:",survey_info)
-time.sleep(2)
-count = 1
-for survey in survey_info:
-    driver.get('https://www.mcdvoice.com/')
-    time.sleep(1.5)
-    enterSurveyCode(survey)  # Enter the survey code for the current survey
-    time.sleep(1)
-    checkAndRunQuestions(survey['option']);
-    time.sleep(1)
-    driver.quit()
-    current_time = datetime.now(ca_timezone)
-    current_time_12_hour = current_time.strftime("%Y-%m-%d %I:%M:%S %p")
-    print("Survey " + str(count) + " finished at " + current_time_12_hour)
-    count+=1
-    driver=webdriver.Chrome(service=service,options=options)
+choice = input("Enter 1 for survey_codes | Enter 2 for no survey_codes: ");
+if(choice=="1"):
+    survey_info =[]
+    read_survey_info(survey_info)
+    print("Survey:",survey_info)
+    time.sleep(2)
+    count = 1
+    for survey in survey_info:
+        driver.get('https://www.mcdvoice.com/')
+        time.sleep(1.5)
+        enterSurveyCode(survey)  # Enter the survey code for the current survey
+        time.sleep(1)
+        checkAndRunQuestions(survey['option']);
+        time.sleep(1)
+        driver.quit()
+        current_time = datetime.now(ca_timezone)
+        current_time_12_hour = current_time.strftime("%Y-%m-%d %I:%M:%S %p")
+        print("Survey " + str(count) + " finished at " + current_time_12_hour)
+        count+=1
+        driver=webdriver.Chrome(service=service,options=options)
+else:
+    numOfSurvey=int(input("Enter number of surveys you wish for it to run "))
+    store_id= input("Enter store ID: ")
+    count=1
+    for i in range(numOfSurvey):
+       random_index = random.randint(1,2)
+       driver.get('https://www.mcdvoice.com/Index.aspx?POSType=PieceMeal')
+       time.sleep(1)
+       storeInfo(store_id)
+       time.sleep(1)
+       checkAndRunQuestions(random_index)
+       time.sleep(1)
+       driver.quit()
+       current_time = datetime.now(ca_timezone)
+       current_time_12_hour = current_time.strftime("%Y-%m-%d %I:%M:%S %p")
+       print("Survey " + str(count) + " finished at " + current_time_12_hour)
+       count+=1
+       driver=webdriver.Chrome(service=service,options=options)
+
+
+
+
