@@ -73,7 +73,7 @@ def generate_unique_transaction_number():
     random_index = random.randint(0, len(available_numbers) - 1)
     # Pop and return the number at the random index from the available numbers list
     unique_number = available_numbers.pop(random_index)
-    print(unique_number)
+    print("Unique id",unique_number)
     return unique_number
 
 def generate_unique_mcdonalds_sentence(available_sentences):
