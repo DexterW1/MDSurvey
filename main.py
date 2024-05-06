@@ -5,14 +5,49 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import WebDriverException
 from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime
+from bs4 import BeautifulSoup
+from requests.exceptions import Timeout
+import requests
 import pytz
 import time
 import random
 #Constants
-pageLoadTime=3 #How long you want each page to take before inputting (currently set to 3 seconds)
+pageLoadTime=1 #How long you want each page to take before inputting (currently set to 3 seconds)
+current_proxy_index=0
 ca_timezone=pytz.timezone('America/Los_Angeles')
+proxyList = requests.get('https://www.sslproxies.org/')
+soup = BeautifulSoup(proxyList.text,'html.parser')
+section = soup.find('section', {'id': 'list'})
+proxy_table = section.find_all('tr')
+filtered_tr=[]
+PROXYLIST=[]
+if(proxy_table):
+   proxy_table.pop(0)
+   for tr in proxy_table:
+      third_td_text = tr.find_all('td')[2].text.strip()
+      if(third_td_text) in ['US','CA']:
+         hx_text = tr.find('td',class_='hx').text.strip()
+         if(hx_text=='yes'):
+            ip_address = tr.find_all('td')[0].text.strip()
+            port = tr.find_all('td')[1].text.strip()
+            ip_port = f"{ip_address}:{port}"
+            filtered_tr.append((ip_port, third_td_text))
+for entry in filtered_tr:
+   ip_address=entry[0]
+   proxy = {"http": f"http://{ip_address}"}
+   try:
+      response= requests.get('https://www.mcdvoice.com/',proxies=proxy,timeout=10)
+      if response.status_code==200:
+         print(f"Proxy {ip_address} works! Response code: {response.status_code}")
+         PROXYLIST.append(ip_address)
+      else:
+         print(f"Proxy {ip_address} returned a non-200 response code: {response.status_code}")
+   except Exception as e:
+        # If an exception occurs during the request, print the error message
+        print(f"Error occurred while testing proxy {ip_address}: {e}")
 available_numbers = list(range(101))
 mcdonalds_sentences = [
     "I had a wonderful experience at this McDonald's. The staff were friendly and the food was delicious.",
@@ -314,6 +349,16 @@ def read_survey_info(survey_info):
             code = lines[i].strip()  
             option = lines[i+1].strip()  
             survey_info.append({"code": code, "option": option})
+def get_new_proxy():
+    global current_proxy_index
+    # If the current index exceeds the length of the proxy list, reset it to 0
+    if current_proxy_index >= len(PROXYLIST):
+        current_proxy_index = 0
+    # Get the next proxy from the list
+    next_proxy = PROXYLIST[current_proxy_index]
+    # Increment the index for the next call
+    current_proxy_index += 1
+    return next_proxy
 def demographics():
   dropdownGender= driver.find_element(By.ID,'R022000')
   dropdownAge= driver.find_element(By.ID,'R023000')
@@ -343,16 +388,16 @@ def demographics():
   time.sleep(.2)
   NextButton()
 # options=Options()
-# PROXY='100.1.53.24:5678';
-options=webdriver.ChromeOptions() 
+# PROXY='103.35.189.217:3128'
+# options=webdriver.ChromeOptions() 
 # options.add_argument('--proxy-server=%s' % PROXY)
-options.add_argument("--ignore-certificate-error")
-options.add_argument("--ignore-ssl-errors")
-options.add_argument("--log-level=3")  # Suppress console messages
-# options.add_experimental_option("detach",True)
-service=Service("chromedriver.exe")
-# driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=options)
-driver=webdriver.Chrome(service=service,options=options)
+# options.add_argument("--ignore-certificate-error")
+# options.add_argument('--blink-settings=imagesEnabled=false')
+# options.add_argument("--ignore-ssl-errors")
+# options.add_argument("--log-level=3")  # Suppress console messages
+# options.add_argument("--incognito")
+# service=Service("chromedriver.exe")
+# driver=webdriver.Chrome(service=service,options=options)
 possibleQuestions = {
     "textR001000": rateSatisfaction,
     "textR000444": mcdonaldsRewards,
@@ -380,6 +425,8 @@ possibleQuestions = {
 }
 
 #=========================================================================Code Begins==================================================
+max_retries= 3
+timeout=15
 # numOfSurveys = int(input("Enter the number of surveys you wish to input: "))
 choice = input("Enter 1 for survey_codes | Enter 2 for no survey_codes: ");
 if(choice=="1"):
@@ -387,20 +434,49 @@ if(choice=="1"):
     read_survey_info(survey_info)
     print("Survey:",survey_info)
     time.sleep(2)
+    random.shuffle(survey_info)
     count = 1
     for survey in survey_info:
-        driver.get('https://www.mcdvoice.com/')
-        time.sleep(1.5)
-        enterSurveyCode(survey)  # Enter the survey code for the current survey
-        time.sleep(1)
-        checkAndRunQuestions(survey['option']);
-        time.sleep(1)
-        driver.quit()
-        current_time = datetime.now(ca_timezone)
-        current_time_12_hour = current_time.strftime("%Y-%m-%d %I:%M:%S %p")
-        print("Survey " + str(count) + " finished at " + current_time_12_hour)
-        count+=1
-        driver=webdriver.Chrome(service=service,options=options)
+        retry= 0
+        PROXY=get_new_proxy()
+        print("Current Proxy: ",PROXY)
+        while retry< max_retries:
+           try:
+                options=webdriver.ChromeOptions() 
+                options.add_argument('--proxy-server=%s' % PROXY)
+                options.add_argument("--ignore-certificate-error")
+                options.add_argument('--blink-settings=imagesEnabled=false')
+                options.add_argument("--ignore-ssl-errors")
+                options.add_argument("--log-level=3")  # Suppress console messages
+                options.add_argument("--incognito")
+                service=Service("chromedriver.exe")
+                driver=webdriver.Chrome(service=service,options=options)
+
+                driver.get('https://www.mcdvoice.com/')
+                time.sleep(1.5)
+                enterSurveyCode(survey)  # Enter the survey code for the current survey
+                time.sleep(1)
+                checkAndRunQuestions(survey['option']);
+                time.sleep(1)
+                driver.quit()
+                current_time = datetime.now(ca_timezone)
+                current_time_12_hour = current_time.strftime("%Y-%m-%d %I:%M:%S %p")
+                print("Survey " + str(count) + " finished at " + current_time_12_hour)
+                print(f"Submitted with this proxy: {PROXY}")
+                count+=1
+                retry = 0
+                break
+           except (Timeout, WebDriverException) as e:
+            #   errorMessage=str(e)
+            #   if "net::ERR_PROXY_CONNECTION_FAILED" in errorMessage:
+            #     print("Proxy connection failed. Moving to the next proxy...")
+            #     # Move to the next proxy for the next survey
+            #     retry +  # Exit the retry loop
+              print(f"Timeout occurred while loading page. Retrying ({retry + 1}/{max_retries})...")
+              retry += 1
+              if retry >= 3:  # Check if the number of retries exceeds 5
+                driver.quit()
+                break  # Exit the retry loop and move to the next survey
 else:
     numOfSurvey=int(input("Enter number of surveys you wish for it to run "))
     store_id= input("Enter store ID: ")
